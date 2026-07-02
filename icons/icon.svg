@@ -1,11 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="24" fill="#050816"/>
+<svg width="128" height="128" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="20" fill="#050816"/>
   <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00D4C5"/>
-      <stop offset="100%" stop-color="#0EA5E9"/>
+    <linearGradient id="yoxon-grad" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#67e8f9"/>
+      <stop offset="50%" stop-color="#00D4C5"/>
+      <stop offset="100%" stop-color="#00a896"/>
     </linearGradient>
   </defs>
-  <text x="64" y="92" font-family="Arial Black, sans-serif" font-size="80" font-weight="900"
-        text-anchor="middle" fill="url(#g)">Y</text>
+  <path d="M16 18 C16 34 26 48 32 50 C38 73 62 73 68 50 C74 52 82 66 84 82" stroke="url(#yoxon-grad)" stroke-width="7.5" stroke-linecap="round"/>
+  <path d="M16 82 C16 66 26 52 32 50 C38 27 62 27 68 50 C74 48 82 34 84 18" stroke="url(#yoxon-grad)" stroke-width="7.5" stroke-linecap="round"/>
 </svg>
