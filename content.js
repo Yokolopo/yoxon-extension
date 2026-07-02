@@ -1,6 +1,8 @@
 (function () {
   'use strict';
 
+  console.log('Yoxon content.js loaded on:', location.href);
+
   function extractJobDescription() {
     const selectors = [
       '.job-details-jobs-unified-top-card__job-title',
@@ -92,13 +94,22 @@
   // Poll every 2 seconds for 60 seconds total
   // (LinkedIn SPA can take a long time to render job details)
   let pollCount = 0;
-  const poll = setInterval(() => {
-    injectButton();
-    pollCount++;
-    if (pollCount > 30 || document.getElementById('yoxon-btn')) {
-      clearInterval(poll);
-    }
-  }, 2000);
+  let poll = null;
+  function startPolling() {
+    pollCount = 0;
+    if (poll) clearInterval(poll);
+    poll = setInterval(() => {
+      injectButton();
+      pollCount++;
+      if (pollCount > 30 || document.getElementById('yoxon-btn')) {
+        clearInterval(poll);
+      }
+    }, 2000);
+  }
+
+  // Start immediately, no waiting
+  injectButton();
+  startPolling();
 
   // Reset on URL change
   let lastUrl = location.href;
@@ -107,7 +118,7 @@
       lastUrl = location.href;
       const old = document.getElementById('yoxon-btn');
       if (old) old.remove();
-      pollCount = 0;
+      startPolling();
     }
   }, 1000);
 })();
