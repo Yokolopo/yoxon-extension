@@ -29,13 +29,45 @@
     return { jobTitle, jobDesc };
   }
 
+  // Try multiple strategies to find the apply button container.
+  // LinkedIn frequently changes CSS class names, so we fall back through
+  // text-match → known selectors rather than relying on a single class.
+  function findApplyContainer() {
+    // Strategy 1: find by button text content
+    const allButtons = document.querySelectorAll('button');
+    for (const btn of allButtons) {
+      if (btn.innerText.trim().match(/^(Apply|Easy Apply)$/i)) {
+        return btn.parentElement;
+      }
+    }
+
+    // Strategy 2: common LinkedIn apply button classes (2024-2025)
+    const selectors = [
+      '.jobs-apply-button--top-card',
+      '.jobs-unified-top-card__apply-button',
+      '[data-job-id] .jobs-apply-button',
+      '.job-details-jobs-unified-top-card__container--two-pane .jobs-apply-button',
+      'button[aria-label*="Apply"]',
+      'button[aria-label*="Easy Apply"]',
+    ];
+
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) return el.parentElement || el;
+    }
+
+    return null;
+  }
+
   function injectButton() {
+    console.log('Yoxon: looking for Apply button...');
     if (document.getElementById('yoxon-btn')) return;
 
-    const applyContainer = document.querySelector(
-      '.jobs-apply-button--top-card, .jobs-unified-top-card__apply-button, [class*="apply-button"]'
-    );
-    if (!applyContainer) return;
+    const applyContainer = findApplyContainer();
+    if (!applyContainer) {
+      console.log('Yoxon: Apply container not found');
+      return;
+    }
 
     const btn = document.createElement('button');
     btn.id = 'yoxon-btn';
@@ -68,14 +100,55 @@
       window.open(`https://yoxon.co/builder?${params.toString()}`, '_blank');
     });
 
-    applyContainer.parentNode.insertBefore(btn, applyContainer.nextSibling);
+    // applyContainer is the parent of the Apply button — append inside it
+    // so our button sits alongside Apply in the same flex row
+    applyContainer.appendChild(btn);
+    console.log('Yoxon: button injected successfully');
   }
 
-  injectButton();
+  // Debounced inject scheduler — collapses bursts of DOM mutations into
+  // a single attempt after the dust settles
+  let injectTimer = null;
+  function scheduleInject() {
+    clearTimeout(injectTimer);
+    injectTimer = setTimeout(injectButton, 2000);
+  }
 
-  // Re-run on LinkedIn SPA navigation
-  const observer = new MutationObserver(() => {
-    setTimeout(injectButton, 1000);
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
+  // Track URL so we detect SPA job-card clicks that don't reload the page
+  let lastUrl = location.href;
+
+  function onMutation() {
+    // When LinkedIn navigates to a different job (URL param changes),
+    // the old button is inside the replaced panel DOM and is already gone,
+    // but reset lastUrl so the next navigation is also caught
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      // Remove stale button in case it survived a partial re-render
+      const stale = document.getElementById('yoxon-btn');
+      if (stale) stale.remove();
+      console.log('Yoxon: URL changed, will reinject');
+    }
+    scheduleInject();
+  }
+
+  // Broad body observer catches all SPA navigations
+  const bodyObserver = new MutationObserver(onMutation);
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+  // Also target the right-side job detail panel once it's in the DOM —
+  // this fires more precisely when the panel content swaps on job-card clicks
+  function tryObserveDetailPanel() {
+    const detailPanel = document.querySelector(
+      '.jobs-search__job-details, .job-view-layout, [class*="job-details"]'
+    );
+    if (detailPanel) {
+      const panelObserver = new MutationObserver(onMutation);
+      panelObserver.observe(detailPanel, { childList: true, subtree: true });
+      console.log('Yoxon: observing detail panel', detailPanel.className);
+    }
+  }
+
+  // Initial attempt + panel setup
+  injectButton();
+  tryObserveDetailPanel();
 })();
