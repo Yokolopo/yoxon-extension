@@ -50,6 +50,11 @@
     const applyBtn = findApplyButton();
     if (!applyBtn) {
       console.log('Yoxon: Apply button not found');
+      console.log('Yoxon: all buttons on page:',
+        Array.from(document.querySelectorAll('button'))
+          .map(b => ({ text: b.innerText?.trim(), label: b.getAttribute('aria-label') }))
+          .filter(b => b.text || b.label)
+      );
       return;
     }
 
