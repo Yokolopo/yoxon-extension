@@ -30,16 +30,18 @@
   }
 
   function findApplyButton() {
-    // Search ALL buttons on the page
     const buttons = Array.from(document.querySelectorAll('button'));
 
     return buttons.find(btn => {
-      const text = btn.innerText?.trim().toLowerCase();
-      const label = btn.getAttribute('aria-label')?.toLowerCase() || '';
-      return text === 'easy apply' ||
-             text === 'apply' ||
+      const text = (btn.innerText || btn.textContent || '').toLowerCase();
+      const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+
+      return text.includes('easy apply') ||
+             text.includes('apply') ||
              label.includes('easy apply') ||
-             label.includes('apply now');
+             label.includes('apply') ||
+             label.includes('candidature') ||
+             text.includes('candidature');
     });
   }
 
@@ -47,14 +49,18 @@
     if (document.getElementById('yoxon-btn')) return;
     console.log('Yoxon: looking for Apply button...');
 
+    console.log('Yoxon: button texts:',
+      Array.from(document.querySelectorAll('button'))
+        .map(b => ({
+          text: (b.innerText || b.textContent || '').trim().slice(0, 50),
+          label: b.getAttribute('aria-label'),
+          class: b.className.slice(0, 50)
+        }))
+    );
+
     const applyBtn = findApplyButton();
     if (!applyBtn) {
       console.log('Yoxon: Apply button not found');
-      console.log('Yoxon: all buttons on page:',
-        Array.from(document.querySelectorAll('button'))
-          .map(b => ({ text: b.innerText?.trim(), label: b.getAttribute('aria-label') }))
-          .filter(b => b.text || b.label)
-      );
       return;
     }
 
