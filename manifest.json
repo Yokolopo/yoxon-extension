@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Yoxon — Tailor CV to Job",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Instantly tailor your CV to any LinkedIn job posting with Yoxon AI.",
-  "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["https://www.linkedin.com/*"],
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["https://www.linkedin.com/*", "https://yoxon.co/*"],
   "content_scripts": [
     {
       "matches": [

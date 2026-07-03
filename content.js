@@ -1,124 +1,181 @@
 (function () {
   'use strict';
 
-  console.log('Yoxon content.js loaded on:', location.href);
+  console.log('Yoxon: content script loaded on', location.href);
+
+  // Job detail panel — split view (search results + panel) or full page view.
+  const DETAIL_PANEL_SELECTORS = [
+    '.jobs-search__job-details--container',
+    '.jobs-unified-top-card__content',
+  ];
+
+  function getDetailPanel() {
+    for (const sel of DETAIL_PANEL_SELECTORS) {
+      const el = document.querySelector(sel);
+      if (el) return el;
+    }
+    return null;
+  }
 
   function extractJobDescription() {
-    const selectors = [
-      '.job-details-jobs-unified-top-card__job-title',
-      '.jobs-description__content',
+    const titleSelectors = [
+      '.job-details-jobs-unified-top-card__job-title h1',
+      '.jobs-unified-top-card__job-title h1',
+      'h1[class*="job-title"]',
+      'h1',
+    ];
+
+    const descSelectors = [
+      '.jobs-description__content .jobs-box__html-content',
+      '.jobs-description-content__text',
+      '#job-details',
+      '[class*="description__text"]',
       '.jobs-box__html-content',
-      '[class*="jobs-description"]',
-      '.description__text',
     ];
 
     let jobTitle = '';
     let jobDesc = '';
 
-    const titleEl = document.querySelector(
-      'h1.job-details-jobs-unified-top-card__job-title, h1[class*="job-title"]'
-    );
-    if (titleEl) jobTitle = titleEl.innerText.trim();
-
-    for (const sel of selectors) {
+    for (const sel of titleSelectors) {
       const el = document.querySelector(sel);
-      if (el && el.innerText.length > 100) {
+      if (el?.innerText?.trim()) { jobTitle = el.innerText.trim(); break; }
+    }
+
+    for (const sel of descSelectors) {
+      const el = document.querySelector(sel);
+      if (el?.innerText?.length > 100) {
         jobDesc = el.innerText.trim().slice(0, 4000);
         break;
       }
     }
 
+    // Fallback: grab the largest plausible text block on the page.
+    if (!jobDesc) {
+      const candidates = Array.from(document.querySelectorAll('div'))
+        .filter((d) => d.children.length < 5 && d.innerText?.length > 200);
+      const largest = candidates.sort((a, b) => b.innerText.length - a.innerText.length)[0];
+      if (largest) jobDesc = largest.innerText.trim().slice(0, 4000);
+    }
+
     return { jobTitle, jobDesc };
   }
 
-  function findApplyButton() {
-    const buttons = Array.from(document.querySelectorAll('button'));
-
-    return buttons.find(btn => {
-      const text = (btn.innerText || btn.textContent || '').toLowerCase();
-      const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-
-      return text.includes('easy apply') ||
-             text.includes('apply') ||
-             label.includes('easy apply') ||
-             label.includes('apply') ||
-             label.includes('candidature') ||
-             text.includes('candidature');
-    });
+  // LinkedIn's "Easy Apply to X at Y" / "Apply to X at Y" aria-labels are
+  // reliable in English, but both the label and button text are localized
+  // ("candidature" shows up in the French UI) — and exact-string matching
+  // previously missed real buttons here (see git history), so match loosely
+  // on includes() rather than requiring an exact string.
+  function isApplyButton(btn) {
+    const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+    const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+    return (
+      label.includes('easy apply') ||
+      label.includes('apply') ||
+      label.includes('candidature') ||
+      text.includes('easy apply') ||
+      text.includes('apply') ||
+      text.includes('candidature')
+    );
   }
 
-  function injectButton() {
-    if (document.getElementById('yoxon-btn')) return;
-    console.log('Yoxon: looking for Apply button...');
+  function isEasyApplyButton(btn) {
+    const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+    const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+    return label.includes('easy apply') || text.includes('easy apply');
+  }
 
-    console.log('Yoxon: button texts:',
-      Array.from(document.querySelectorAll('button'))
-        .map(b => ({
-          text: (b.innerText || b.textContent || '').trim().slice(0, 50),
-          label: b.getAttribute('aria-label'),
-          class: b.className.slice(0, 50)
-        }))
-    );
-
-    const applyBtn = findApplyButton();
-    if (!applyBtn) {
-      console.log('Yoxon: Apply button not found');
-      return;
+  function findApplyButtons(root) {
+    const buttons = Array.from(root.querySelectorAll('button'));
+    const results = buttons.filter(isApplyButton);
+    if (results.length) {
+      console.log('Yoxon: found', results.length, 'apply button(s):',
+        results.map((b) => ({ label: b.getAttribute('aria-label'), text: b.innerText?.trim() })));
     }
+    return results;
+  }
 
-    console.log('Yoxon: found button:', applyBtn.innerText);
+  function injectYoxonButton(applyBtn) {
+    if (applyBtn.dataset.yoxonInjected) return;
+    applyBtn.dataset.yoxonInjected = 'true';
+
+    const isEasyApply = isEasyApplyButton(applyBtn);
 
     const btn = document.createElement('button');
-    btn.id = 'yoxon-btn';
     btn.className = 'yoxon-tailor-btn';
     btn.innerHTML = '⚡ Tailor CV with Yoxon';
-    btn.addEventListener('click', () => {
+    btn.title = isEasyApply
+      ? 'Tailor your CV before applying via LinkedIn Easy Apply'
+      : 'Tailor your CV before applying to this job';
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
       const { jobTitle, jobDesc } = extractJobDescription();
+
       if (!jobDesc) {
-        alert('Scroll down to load the full job description first.');
+        // No JD extracted yet — still open the builder, user can paste manually.
+        window.open('https://yoxon.co/builder?source=linkedin-extension', '_blank');
         return;
       }
+
       const params = new URLSearchParams({
-        jd: jobDesc.slice(0, 2000),
+        jd: jobDesc,
         title: jobTitle,
-        source: 'linkedin-extension'
+        source: isEasyApply ? 'linkedin-easy-apply' : 'linkedin-apply',
       });
       window.open('https://yoxon.co/builder?' + params.toString(), '_blank');
     });
 
-    // Insert directly after the apply button
     applyBtn.insertAdjacentElement('afterend', btn);
-    console.log('Yoxon: button injected ✓');
+    console.log('Yoxon: injected button next to', applyBtn.getAttribute('aria-label') || applyBtn.innerText?.trim());
   }
 
-  // Poll every 2 seconds for 60 seconds total
-  // (LinkedIn SPA can take a long time to render job details)
-  let pollCount = 0;
-  let poll = null;
-  function startPolling() {
-    pollCount = 0;
-    if (poll) clearInterval(poll);
-    poll = setInterval(() => {
-      injectButton();
-      pollCount++;
-      if (pollCount > 30 || document.getElementById('yoxon-btn')) {
-        clearInterval(poll);
-      }
-    }, 2000);
+  function scanAndInject() {
+    findApplyButtons(getDetailPanel() || document).forEach(injectYoxonButton);
   }
 
-  // Start immediately, no waiting
-  injectButton();
-  startPolling();
+  // Initial scan with retries — LinkedIn's SPA can take a while to render
+  // job details after navigation.
+  scanAndInject();
+  setTimeout(scanAndInject, 1000);
+  setTimeout(scanAndInject, 2500);
+  setTimeout(scanAndInject, 5000);
 
-  // Reset on URL change
   let lastUrl = location.href;
-  setInterval(() => {
+  let panelObserver = null;
+  let watchedPanel = null;
+
+  // Once the detail panel exists, scope the real observer to it instead of
+  // the whole document — LinkedIn's SPA mutates document.body constantly
+  // outside the job panel (feed, nav, ads), and scanning on every one of
+  // those mutations is wasted work.
+  function watchDetailPanel() {
+    const panel = getDetailPanel();
+    if (!panel || panel === watchedPanel) return;
+    if (panelObserver) panelObserver.disconnect();
+    watchedPanel = panel;
+    panelObserver = new MutationObserver(scanAndInject);
+    panelObserver.observe(panel, { childList: true, subtree: true });
+    scanAndInject();
+  }
+
+  // The detail panel doesn't exist yet on first paint after a LinkedIn SPA
+  // navigation, so document.body still needs watching — just to notice the
+  // panel appearing and to catch URL changes, not to scan for buttons itself.
+  const bodyObserver = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
-      const old = document.getElementById('yoxon-btn');
-      if (old) old.remove();
-      startPolling();
+      console.log('Yoxon: URL changed, rescanning...');
+      document.querySelectorAll('.yoxon-tailor-btn').forEach((b) => b.remove());
+      document.querySelectorAll('[data-yoxon-injected]').forEach((b) => delete b.dataset.yoxonInjected);
+      if (panelObserver) { panelObserver.disconnect(); panelObserver = null; watchedPanel = null; }
+      setTimeout(scanAndInject, 1500);
+      setTimeout(scanAndInject, 3000);
     }
-  }, 1000);
+    watchDetailPanel();
+  });
+
+  bodyObserver.observe(document.body, { childList: true, subtree: true });
+  watchDetailPanel();
 })();

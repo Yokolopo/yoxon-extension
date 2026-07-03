@@ -3,33 +3,235 @@
 <head>
   <meta charset="utf-8">
   <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      width: 280px;
-      padding: 16px;
+      width: 320px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #050816;
       color: #fff;
-      margin: 0;
     }
-    .logo { color: #00D4C5; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
-    .desc { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 16px; line-height: 1.5; }
-    .btn {
-      display: block; width: 100%; padding: 10px;
-      background: linear-gradient(135deg, #00D4C5, #0EA5E9);
-      color: #050816; border: none;
-      border-radius: 20px; font-size: 14px; font-weight: 600;
-      cursor: pointer; text-align: center; text-decoration: none;
-      box-sizing: border-box;
+
+    /* Header */
+    .header {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .btn:hover { opacity: 0.9; }
-    .note { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 12px; text-align: center; }
+    .logo { color: #00D4C5; font-size: 16px; font-weight: 700; }
+    .tagline { font-size: 11px; color: rgba(255,255,255,0.4); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 4px;
+      text-align: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .tab.active {
+      color: #00D4C5;
+      border-bottom-color: #00D4C5;
+    }
+
+    /* Panels */
+    .panel { display: none; padding: 14px 16px; }
+    .panel.active { display: block; }
+
+    /* CV Builder panel */
+    .main-btn {
+      display: block; width: 100%;
+      padding: 11px;
+      background: #00D4C5; color: #050816;
+      font-weight: 700; border: none;
+      border-radius: 20px; font-size: 14px;
+      cursor: pointer; text-align: center;
+      text-decoration: none; margin-bottom: 10px;
+    }
+    .main-btn:hover { background: #00bfb2; }
+    .info-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    /* Ghost checker panel */
+    textarea {
+      width: 100%;
+      height: 100px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 12px;
+      padding: 8px;
+      resize: none;
+      margin-bottom: 8px;
+      font-family: inherit;
+    }
+    textarea::placeholder { color: rgba(255,255,255,0.3); }
+
+    .check-btn {
+      width: 100%;
+      padding: 9px;
+      background: transparent;
+      border: 1px solid #00D4C5;
+      color: #00D4C5;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .check-btn:hover { background: rgba(0,212,197,0.1); }
+    .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Result */
+    .result {
+      display: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+    .result.low { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); }
+    .result.medium { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); }
+    .result.high { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); }
+    .result.error { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15); }
+    .result-score { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+
+    /* Tracker panel */
+    .tracker-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+    .tracker-form input, .tracker-form select {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 12px;
+      padding: 7px 10px;
+      font-family: inherit;
+    }
+    .tracker-form input::placeholder { color: rgba(255,255,255,0.3); }
+    .add-btn {
+      padding: 8px;
+      background: rgba(0,212,197,0.15);
+      border: 1px solid rgba(0,212,197,0.3);
+      color: #00D4C5;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .apps-list { max-height: 130px; overflow-y: auto; }
+    .app-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      font-size: 11px;
+    }
+    .app-item:first-child { border-top: none; }
+    .app-company { flex: 1; font-weight: 500; }
+    .app-status {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+    .status-Applied { background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .status-Interview { background: rgba(139,92,246,0.2); color: #c4b5fd; }
+    .status-Offer { background: rgba(34,197,94,0.2); color: #86efac; }
+    .status-Rejected { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .empty-state {
+      text-align: center;
+      color: rgba(255,255,255,0.3);
+      font-size: 12px;
+      padding: 16px 0;
+    }
+    .open-full-link {
+      display: block;
+      text-align: center;
+      font-size: 11px;
+      color: rgba(0,212,197,0.6);
+      text-decoration: none;
+      margin-top: 8px;
+    }
+    .open-full-link:hover { color: #00D4C5; }
   </style>
 </head>
 <body>
-  <div class="logo">⚡ YOXON</div>
-  <p class="desc">Navigate to any LinkedIn job posting to see the "Tailor CV with Yoxon" button appear next to the Apply button.</p>
-  <a href="https://yoxon.co/builder" target="_blank" class="btn">Open CV Builder →</a>
-  <p class="note">AI-powered CV tailoring · From $4.99</p>
+  <div class="header">
+    <div>
+      <div class="logo">⚡ YOXON</div>
+      <div class="tagline">AI CV tailoring · From $4.99</div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="cv">CV Builder</button>
+    <button class="tab" data-tab="ghost">Ghost Check</button>
+    <button class="tab" data-tab="tracker">Tracker</button>
+  </div>
+
+  <!-- CV Builder Tab -->
+  <div id="tab-cv" class="panel active">
+    <p style="font-size:12px; color:rgba(255,255,255,0.5); margin-bottom:12px; line-height:1.5;">
+      Browse to any LinkedIn job posting — the "Tailor CV with Yoxon" button appears next to Easy Apply automatically.
+    </p>
+    <a href="https://yoxon.co/builder" target="_blank" class="main-btn">
+      Open CV Builder →
+    </a>
+    <p class="info-text">2 tailored CVs · ATS-optimized · 20 templates</p>
+  </div>
+
+  <!-- Ghost Job Checker Tab -->
+  <div id="tab-ghost" class="panel">
+    <p style="font-size:11px; color:rgba(255,255,255,0.4); margin-bottom:8px;">
+      Paste a job description to check for red flags:
+    </p>
+    <textarea id="jd-input" placeholder="Paste job description here..."></textarea>
+    <button class="check-btn" id="check-btn">
+      Check for red flags →
+    </button>
+    <div id="ghost-result" class="result"></div>
+    <a href="https://yoxon.co/ghost-checker" target="_blank" class="open-full-link">
+      Open full checker on yoxon.co →
+    </a>
+  </div>
+
+  <!-- Application Tracker Tab -->
+  <div id="tab-tracker" class="panel">
+    <div class="tracker-form">
+      <input id="t-company" placeholder="Company name" />
+      <input id="t-role" placeholder="Role / Job title" />
+      <select id="t-status">
+        <option>Applied</option>
+        <option>Interview</option>
+        <option>Offer</option>
+        <option>Rejected</option>
+      </select>
+      <button class="add-btn" id="add-app-btn">+ Log this application</button>
+    </div>
+    <div id="apps-list" class="apps-list"></div>
+    <a href="https://yoxon.co/tracker" target="_blank" class="open-full-link">
+      Open full tracker on yoxon.co →
+    </a>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
