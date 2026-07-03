@@ -60,6 +60,18 @@
     return { jobTitle, jobDesc };
   }
 
+  // The external "Apply" button wraps its label and an arrow icon inside
+  // the button — innerText (which respects rendered layout) can come back
+  // as just whitespace/newlines from the icon's box, and `innerText ||
+  // textContent` still picks that non-empty whitespace string over the
+  // fallback, so the actual "Apply" text (present in textContent) never
+  // gets checked. Fall back based on the *trimmed* value instead.
+  function getButtonText(btn) {
+    const inner = btn.innerText || ''
+    const raw = inner.trim() ? inner : (btn.textContent || '')
+    return raw.replace(/\s+/g, ' ').trim().toLowerCase()
+  }
+
   // LinkedIn's "Easy Apply to X at Y" / "Apply to X at Y" aria-labels are
   // reliable in English, but both the label and button text are localized
   // ("candidature" shows up in the French UI) — and exact-string matching
@@ -67,7 +79,7 @@
   // on includes() rather than requiring an exact string.
   function isApplyButton(btn) {
     const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-    const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+    const text = getButtonText(btn);
     return (
       label.includes('easy apply') ||
       label.includes('apply') ||
@@ -80,7 +92,7 @@
 
   function isEasyApplyButton(btn) {
     const label = (btn.getAttribute('aria-label') || '').toLowerCase();
-    const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+    const text = getButtonText(btn);
     return label.includes('easy apply') || text.includes('easy apply');
   }
 
@@ -89,7 +101,7 @@
     const results = buttons.filter(isApplyButton);
     if (results.length) {
       console.log('Yoxon: found', results.length, 'apply button(s):',
-        results.map((b) => ({ label: b.getAttribute('aria-label'), text: b.innerText?.trim() })));
+        results.map((b) => ({ label: b.getAttribute('aria-label'), text: getButtonText(b) })));
     }
     return results;
   }
@@ -128,7 +140,7 @@
     });
 
     applyBtn.insertAdjacentElement('afterend', btn);
-    console.log('Yoxon: injected button next to', applyBtn.getAttribute('aria-label') || applyBtn.innerText?.trim());
+    console.log('Yoxon: injected button next to', applyBtn.getAttribute('aria-label') || getButtonText(applyBtn));
   }
 
   function scanAndInject() {

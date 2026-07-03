@@ -115,7 +115,7 @@
 
     /* Tracker panel */
     .tracker-form { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
-    .tracker-form input, .tracker-form select {
+    .tracker-form input {
       background: rgba(255,255,255,0.05);
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 6px;
@@ -125,6 +125,26 @@
       font-family: inherit;
     }
     .tracker-form input::placeholder { color: rgba(255,255,255,0.3); }
+    #t-status {
+      background: #0d1117;
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2300D4C5' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+    }
+    #t-status option {
+      background: #0d1117;
+      color: #ffffff;
+    }
     .add-btn {
       padding: 8px;
       background: rgba(0,212,197,0.15);
