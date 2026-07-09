@@ -3,10 +3,20 @@
 
   console.log('Yoxon: content script loaded on', location.href);
 
-  // Job detail panel — split view (search results + panel) or full page view.
+  // Job detail panel — split view (search-results right-hand panel) or
+  // standalone /jobs/view/:id page. LinkedIn's class names for the split
+  // view drift often and can match a too-narrow element that excludes the
+  // Apply button (e.g. a title-only wrapper) — scanAndInject() below
+  // self-heals against that by falling back to a document-wide search
+  // whenever the matched panel yields zero buttons, so a stale/imprecise
+  // selector here degrades to "slightly less scoped" rather than "broken".
   const DETAIL_PANEL_SELECTORS = [
     '.jobs-search__job-details--container',
+    '.job-details-jobs-unified-top-card__container--two-pane',
     '.jobs-unified-top-card__content',
+    '.scaffold-layout__detail',
+    '[class*="jobs-search__job-details"]',
+    '[class*="job-details-jobs-unified-top-card"]',
   ];
 
   function getDetailPanel() {
@@ -144,7 +154,14 @@
   }
 
   function scanAndInject() {
-    findApplyButtons(getDetailPanel() || document).forEach(injectYoxonButton);
+    const panel = getDetailPanel();
+    // A matched panel that happens to be too narrow (wrong element, or a
+    // stale class match) would otherwise silently miss the Apply button
+    // forever — fall back to the full document in that case so a selector
+    // miss degrades to "scanned a bit wider" instead of "never injects".
+    let buttons = panel ? findApplyButtons(panel) : [];
+    if (!buttons.length) buttons = findApplyButtons(document);
+    buttons.forEach(injectYoxonButton);
   }
 
   // Initial scan with retries — LinkedIn's SPA can take a while to render
