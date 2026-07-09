@@ -15,8 +15,8 @@
 | Permission | Justification (one sentence, as read by the reviewer) |
 |---|---|
 | `storage` | Stores the user's self-entered job-application tracker entries (company, role, status) locally via `chrome.storage.local`; this data is never transmitted anywhere. |
-| `host_permissions: https://www.linkedin.com/*` | Needed so the content script can detect the Apply / Easy Apply button on LinkedIn job posting pages and inject the "Tailor CV with Yoxon" button next to it. |
-| `host_permissions: https://yoxon.co/*` | Needed so the popup can call the yoxon.co ghost-job-check API and open the CV Builder pre-filled with the job posting content, without being blocked by cross-origin restrictions. The extension communicates only with our own service, yoxon.co. **Load-bearing:** `/api/ghost-job-check` sends no `Access-Control-Allow-*` headers (verified live, 2026-07-09), so this permission is the only thing making that fetch work — removing it silently breaks the Ghost Job Checker rather than just tightening scope. |
+| `host_permissions: https://www.linkedin.com/*` | The content script uses this solely to detect job posting pages and insert the "Tailor CV with Yoxon" button next to the Easy Apply button. The script transmits nothing on its own; only when the user clicks the button does it read the currently-viewed posting's title and description and pass them as URL parameters to `yoxon.co/cvbuilder` in a new tab, so the CV Builder opens pre-filled with the job the user chose. No background reading, storage, or transmission occurs. |
+| `host_permissions: https://yoxon.co/*` | Our own service. Used for one user-initiated feature: job postings the user submits via the popup's Ghost Job Check tab are sent to yoxon.co's API for analysis (identical processing to the Ghost Job Detector on our website). The extension communicates with no hosts other than LinkedIn job pages and our own domain. **Load-bearing:** `/api/ghost-job-check` sends no `Access-Control-Allow-*` headers (verified live, 2026-07-09), so this permission is the only thing making that fetch work — removing it silently breaks the Ghost Job Checker rather than just tightening scope. |
 
 `activeTab` and `scripting` were requested in a prior version but are unused
 by any code path (content-script injection is fully static via manifest
@@ -30,20 +30,25 @@ the user is actively viewing when they click "Tailor CV with Yoxon" — or
 whatever job-posting text the user manually pastes into the popup's Ghost
 Job Checker.
 
-**What is transmitted, and where:**
-- Tailor CV flow (content-script button, and the popup's "Open CV Builder"
-  link): the job title/description is passed as URL query parameters to
-  `https://yoxon.co/cvbuilder`, opened in a new tab, only at the moment the
-  user clicks the button — this is a plain outbound link, not a background
-  network call.
-- Ghost Job Checker flow: unlike the other two features, this one makes a
-  direct network call from the popup itself — the pasted text is sent as a
-  POST body to `https://yoxon.co/api/ghost-job-check`, only at the moment
-  the user clicks "Check for red flags." Its "Open full checker on
-  yoxon.co" fallback is a plain link.
-- Application Tracker: company/role/status entries the user types are
-  stored in `chrome.storage.local` on-device only and are never sent to any
-  server; its "Open full tracker on yoxon.co" is a plain link.
+**What is transmitted, and where:** Job-posting content is transmitted in
+exactly two user-initiated flows, both to yoxon.co and no other host:
+- **Tailor CV flow** — clicking the button reads the currently-viewed
+  posting's title/description and passes them as URL query parameters to
+  `https://yoxon.co/cvbuilder`, opened in a new tab. The content script does
+  nothing until this click: no background reading, storage, or
+  transmission.
+- **Ghost Job Checker flow** — the pasted posting text is sent as a POST
+  body to `https://yoxon.co/api/ghost-job-check`, only at the moment the
+  user clicks "Check for red flags." This is the one flow that makes a
+  direct network call from the popup itself rather than opening a link.
+
+Neither flow touches any host besides yoxon.co. The popup's three "Open
+full X on yoxon.co" links (CV Builder, Ghost Checker, Tracker) are plain
+outbound links, not data transmissions.
+
+**Application Tracker** (separate from the above — no job-posting content
+involved): company/role/status entries the user types are stored in
+`chrome.storage.local` on-device only and are never sent to any server.
 
 **What is NOT collected:** no browsing history, no LinkedIn profile/contacts/
 messages, no analytics or telemetry, no background or passive data
