@@ -127,7 +127,7 @@
 
       if (!jobDesc) {
         // No JD extracted yet — still open the builder, user can paste manually.
-        window.open('https://yoxon.co/builder?source=linkedin-extension', '_blank');
+        window.open('https://yoxon.co/cvbuilder?source=linkedin-extension', '_blank');
         return;
       }
 
@@ -136,7 +136,7 @@
         title: jobTitle,
         source: isEasyApply ? 'linkedin-easy-apply' : 'linkedin-apply',
       });
-      window.open('https://yoxon.co/builder?' + params.toString(), '_blank');
+      window.open('https://yoxon.co/cvbuilder?' + params.toString(), '_blank');
     });
 
     applyBtn.insertAdjacentElement('afterend', btn);
