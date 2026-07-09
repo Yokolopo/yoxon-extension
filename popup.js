@@ -39,6 +39,10 @@ async function checkGhostJob() {
   result.style.display = 'none';
 
   try {
+    // yoxon.co sends no Access-Control-Allow-* headers on this endpoint —
+    // this call only works because manifest.json's host_permissions grants
+    // this extension page a CORS bypass for https://yoxon.co/*. Dropping
+    // that permission breaks this fetch silently (caught below).
     const res = await fetch('https://yoxon.co/api/ghost-job-check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

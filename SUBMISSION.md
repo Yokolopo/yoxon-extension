@@ -16,7 +16,7 @@
 |---|---|
 | `storage` | Stores the user's self-entered job-application tracker entries (company, role, status) locally via `chrome.storage.local`; this data is never transmitted anywhere. |
 | `host_permissions: https://www.linkedin.com/*` | Needed so the content script can detect the Apply / Easy Apply button on LinkedIn job posting pages and inject the "Tailor CV with Yoxon" button next to it. |
-| `host_permissions: https://yoxon.co/*` | Needed so the popup can call the yoxon.co ghost-job-check API and open the CV Builder pre-filled with the job posting content, without being blocked by cross-origin restrictions. |
+| `host_permissions: https://yoxon.co/*` | Needed so the popup can call the yoxon.co ghost-job-check API and open the CV Builder pre-filled with the job posting content, without being blocked by cross-origin restrictions. The extension communicates only with our own service, yoxon.co. **Load-bearing:** `/api/ghost-job-check` sends no `Access-Control-Allow-*` headers (verified live, 2026-07-09), so this permission is the only thing making that fetch work — removing it silently breaks the Ghost Job Checker rather than just tightening scope. |
 
 `activeTab` and `scripting` were requested in a prior version but are unused
 by any code path (content-script injection is fully static via manifest
