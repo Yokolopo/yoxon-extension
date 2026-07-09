@@ -1,14 +1,14 @@
-# Chrome Web Store Submission — Yoxon (v1.2.0)
+# Chrome Web Store Submission — Yoxon (v1.2.2)
 
 ## Single purpose
 
-> Yoxon is a LinkedIn job-search companion. It adds a "Tailor CV with Yoxon"
-> button to LinkedIn job postings that opens the posting in Yoxon's CV
-> Builder, and its toolbar popup offers two tightly-related tools for the
-> same workflow: a ghost-job risk check for a pasted job posting, and a
-> personal application tracker. All three features exist to help a single
-> user prepare for, evaluate, and keep track of their LinkedIn job
-> applications — there is no unrelated functionality.
+> Yoxon is a LinkedIn job-search companion. Its content script adds a
+> "Tailor CV with Yoxon" button to LinkedIn job postings that opens the
+> posting in Yoxon's CV Builder. Its toolbar popup is the launcher for that
+> same workflow plus two tightly-related tools: a ghost-job risk check for a
+> pasted job posting, and a personal application tracker. All three exist to
+> help a single user prepare for, evaluate, and keep track of their LinkedIn
+> job applications — there is no unrelated functionality.
 
 ## Permission justifications
 
@@ -31,15 +31,19 @@ whatever job-posting text the user manually pastes into the popup's Ghost
 Job Checker.
 
 **What is transmitted, and where:**
-- Tailor CV flow: the job title/description is passed as URL query
-  parameters to `https://yoxon.co/cvbuilder`, opened in a new tab, only at
-  the moment the user clicks the button.
-- Ghost Job Checker flow: the pasted text is sent as a POST body to
-  `https://yoxon.co/api/ghost-job-check`, only at the moment the user clicks
-  "Check for red flags."
+- Tailor CV flow (content-script button, and the popup's "Open CV Builder"
+  link): the job title/description is passed as URL query parameters to
+  `https://yoxon.co/cvbuilder`, opened in a new tab, only at the moment the
+  user clicks the button — this is a plain outbound link, not a background
+  network call.
+- Ghost Job Checker flow: unlike the other two features, this one makes a
+  direct network call from the popup itself — the pasted text is sent as a
+  POST body to `https://yoxon.co/api/ghost-job-check`, only at the moment
+  the user clicks "Check for red flags." Its "Open full checker on
+  yoxon.co" fallback is a plain link.
 - Application Tracker: company/role/status entries the user types are
   stored in `chrome.storage.local` on-device only and are never sent to any
-  server.
+  server; its "Open full tracker on yoxon.co" is a plain link.
 
 **What is NOT collected:** no browsing history, no LinkedIn profile/contacts/
 messages, no analytics or telemetry, no background or passive data
