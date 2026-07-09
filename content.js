@@ -106,9 +106,34 @@
     return label.includes('easy apply') || text.includes('easy apply');
   }
 
-  function findApplyButtons(root) {
-    const buttons = Array.from(root.querySelectorAll('button'));
-    const results = buttons.filter(isApplyButton);
+  // LinkedIn's newer/beta surfaces (e.g. the AI-powered search view) don't
+  // always render Apply as a native <button> — querying only 'button' would
+  // silently see nothing there even though isApplyButton's text/aria check
+  // is broad enough to match it. [role="button"] catches those variants.
+  const APPLY_CANDIDATE_SELECTOR = 'button, [role="button"]';
+
+  // When a scan falls back to the full document (see scanAndInject), the
+  // left-hand job results list can contain its own per-card Apply-like
+  // controls — excluded here so a document-wide fallback only lands on the
+  // one Apply button for the job actually open in the detail panel, not
+  // one injected button per list item.
+  const RESULTS_LIST_SELECTORS = [
+    '.jobs-search-results-list',
+    '.scaffold-layout__list',
+    '[class*="jobs-search-results-list"]',
+  ];
+
+  function isInResultsList(el) {
+    return RESULTS_LIST_SELECTORS.some((sel) => el.closest(sel));
+  }
+
+  function findApplyButtons(root, { excludeResultsList = false } = {}) {
+    const candidates = Array.from(root.querySelectorAll(APPLY_CANDIDATE_SELECTOR));
+    const results = candidates.filter((el) => {
+      if (el.classList.contains('yoxon-tailor-btn')) return false;
+      if (excludeResultsList && isInResultsList(el)) return false;
+      return isApplyButton(el);
+    });
     if (results.length) {
       console.log('Yoxon: found', results.length, 'apply button(s):',
         results.map((b) => ({ label: b.getAttribute('aria-label'), text: getButtonText(b) })));
@@ -160,7 +185,7 @@
     // forever — fall back to the full document in that case so a selector
     // miss degrades to "scanned a bit wider" instead of "never injects".
     let buttons = panel ? findApplyButtons(panel) : [];
-    if (!buttons.length) buttons = findApplyButtons(document);
+    if (!buttons.length) buttons = findApplyButtons(document, { excludeResultsList: true });
     buttons.forEach(injectYoxonButton);
   }
 
